@@ -1,10 +1,13 @@
 package com.md_5.bot.mc;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URL;
 import javax.net.ssl.HttpsURLConnection;
 
@@ -42,5 +45,40 @@ public class Util {
         rd.close();
 
         return response.toString();
+    }
+
+    public static PingResponse pingServer(String host, int port) throws IOException {
+        Socket socket = new Socket();
+        socket.setSoTimeout(3000);
+        socket.setTcpNoDelay(true);
+        socket.setTrafficClass(18);
+        socket.connect(new InetSocketAddress(host, port), 3000);
+
+        DataInputStream in = new DataInputStream(socket.getInputStream());
+        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+        out.write(254);
+
+        if (in.read() != 255) {
+            throw new IOException("Bad message");
+        }
+
+        String response = PacketUtil.readString(in, 256);
+
+        String[] split = response.split("§");
+        String motd = split[0];
+
+        int online = -1;
+        try {
+            online = Integer.parseInt(split[1]);
+        } catch (NumberFormatException ex) {
+        }
+
+        int max = -1;
+        try {
+            max = Integer.parseInt(split[2]);
+        } catch (NumberFormatException ex) {
+        }
+
+        return new PingResponse(motd, online, max);
     }
 }

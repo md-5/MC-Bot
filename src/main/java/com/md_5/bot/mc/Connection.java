@@ -5,6 +5,8 @@ import java.net.Socket;
 import java.net.URLEncoder;
 import javax.security.auth.login.LoginException;
 import lombok.Data;
+import net.minecraft.server.Packet;
+import net.minecraft.server.Packet255KickDisconnect;
 
 @Data
 public class Connection {
@@ -14,6 +16,7 @@ public class Connection {
     //
     private String username;
     private String sessionId;
+    private boolean isConnected;
     //
     private int timeout = 30000;
     private Socket socket;
@@ -69,21 +72,6 @@ public class Connection {
     }
 
     /**
-     * Log into minecraft.net in order to receive a session id. This session id
-     * is used when connecting to online mode servers.
-     *
-     * This method will default to using the current username as the login
-     * username.
-     *
-     * @param password the password to be used
-     * @throws InvalidLoginException when a session id is unable to be retrieved
-     * for any reason
-     */
-    public void login(String password) throws InvalidLoginException {
-        login(this.username, password);
-    }
-
-    /**
      * Sets this sessions username.
      *
      * NOTE: This method must only be called if you do not plan on logging into
@@ -108,7 +96,64 @@ public class Connection {
      * @throws IOException when the underlying socket throws an exception
      */
     public void connect() throws IOException {
+        if (this.isConnected) {
+            throw new IllegalStateException("Already connected to a server");
+        }
+
         this.socket = new Socket(host, port);
         this.socket.setSoTimeout(this.timeout);
+        this.socket.setTrafficClass(24);
+
+        this.isConnected = true;
+    }
+
+    /**
+     * Gracefully disconnect from the current server.
+     *
+     * @throws IOException when the quit packet cannot be sent or the socket
+     * cannot be closed.
+     */
+    public void disconnect() throws IOException {
+        if (!this.isConnected) {
+            throw new IllegalStateException("Not connected to a server.");
+        }
+        try {
+            Packet packet = new Packet255KickDisconnect("Quitting");
+            sendPacket(packet);
+
+            this.socket.close();
+        } finally {
+            this.isConnected = false;
+        }
+    }
+
+    /**
+     * Sends the specified packet to the connected server.
+     *
+     * @param packet the packet to be sent
+     * @throws IOException when there is an error sending the packet
+     */
+    public void sendPacket(Packet packet) throws IOException {
+        if (!this.isConnected) {
+            throw new IllegalStateException("Not connected to a server.");
+        }
+
+        // TODO
+    }
+
+    /**
+     * Gets the next availible packet from the server. This method will block
+     * until there is a packet availible, or until the connectin is closed and a
+     * packet is unable to be recevied.
+     *
+     * @return the next availible packet, null if there is no packet.
+     * @throws IOException when there is an error receiving the packet
+     */
+    public Packet getPacket() throws IOException {
+        if (!this.isConnected) {
+            throw new IllegalStateException("Not connected to a server.");
+        }
+
+        return null;
     }
 }

@@ -78,6 +78,7 @@
                         <addMavenDescriptor>false</addMavenDescriptor>
                         <manifestEntries>
                             <Main-Class>com.md_5.bot.mc.Main</Main-Class>
+                            <Implementation-Title>${project.name}</Implementation-Title>
                             <Implementation-Version>${build.number}</Implementation-Version>
                         </manifestEntries>
                     </archive>
