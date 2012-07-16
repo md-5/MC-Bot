@@ -1,12 +1,22 @@
 package com.md_5.bot.mc;
 
+import com.md_5.bot.mc.impl.BaseHandler;
+import com.md_5.bot.mc.impl.NetworkReader;
+import com.md_5.bot.mc.impl.NetworkWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URLEncoder;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import javax.security.auth.login.LoginException;
 import lombok.Data;
+import net.minecraft.server.NetHandler;
 import net.minecraft.server.Packet;
+import net.minecraft.server.Packet1Login;
 import net.minecraft.server.Packet255KickDisconnect;
+import net.minecraft.server.Packet2Handshake;
 
 @Data
 public class Connection {
@@ -17,9 +27,17 @@ public class Connection {
     private String username;
     private String sessionId;
     private boolean isConnected;
+    private String shutdownReason;
     //
     private int timeout = 30000;
     private Socket socket;
+    //
+    private BlockingQueue<Packet> receivedPackets = new LinkedBlockingQueue<Packet>();
+    private BlockingQueue<Packet> queuedPackets = new LinkedBlockingQueue<Packet>();
+    //
+    private NetworkReader reader;
+    private NetworkWriter writer;
+    private NetHandler baseHandler = new BaseHandler(this);
 
     /**
      * Initialize a session for given server.
@@ -33,6 +51,7 @@ public class Connection {
     public Connection(String host, int port) {
         this.host = host;
         this.port = port;
+        Main.getActiveConnections().add(this);
     }
 
     /**
@@ -103,8 +122,35 @@ public class Connection {
         this.socket = new Socket(host, port);
         this.socket.setSoTimeout(this.timeout);
         this.socket.setTrafficClass(24);
-
         this.isConnected = true;
+
+        DataInputStream in = new DataInputStream(this.socket.getInputStream());
+        DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
+        this.reader = new NetworkReader(this, in);
+        this.reader.start();
+        this.writer = new NetworkWriter(this, out);
+        this.writer.start();
+
+
+        sendPacket(new Packet2Handshake(this.username + ";" + this.host + ";" + this.port));
+        Packet reponse = getPacket();
+        checkResponse(reponse);
+
+        Packet2Handshake handshake = (Packet2Handshake) reponse;
+        if (!handshake.a.equals("-")) {
+            // TODO
+        }
+
+        sendPacket(new Packet1Login(this.username, 29, null, 0, 0, (byte) 0, (byte) 0, (byte) 0));
+        checkResponse(reponse);
+    }
+
+    private void checkResponse(Packet reponse) throws RuntimeException {
+        if (PacketUtil.getId(reponse) != 2) {
+            String message = "Disconnected by server: " + ((Packet255KickDisconnect) reponse).a;
+            shutdown(message);
+            throw new RuntimeException(message);
+        }
     }
 
     /**
@@ -123,7 +169,7 @@ public class Connection {
 
             this.socket.close();
         } finally {
-            this.isConnected = false;
+            shutdown("Quit");
         }
     }
 
@@ -131,14 +177,13 @@ public class Connection {
      * Sends the specified packet to the connected server.
      *
      * @param packet the packet to be sent
-     * @throws IOException when there is an error sending the packet
      */
-    public void sendPacket(Packet packet) throws IOException {
+    public void sendPacket(Packet packet) {
         if (!this.isConnected) {
             throw new IllegalStateException("Not connected to a server.");
         }
 
-        // TODO
+        queuedPackets.add(packet);
     }
 
     /**
@@ -154,6 +199,29 @@ public class Connection {
             throw new IllegalStateException("Not connected to a server.");
         }
 
-        return null;
+        Packet next = null;
+        try {
+            next = this.receivedPackets.take();
+        } catch (InterruptedException ex) {
+        }
+        return next;
+    }
+
+    /**
+     * Forcefully ends the currrent connection shutting it down.
+     *
+     * @param reason the reason for this early termination
+     */
+    public void shutdown(String reason) {
+        this.isConnected = false;
+        this.shutdownReason = reason;
+        try {
+            this.socket.close();
+        } catch (IOException ex) {
+        }
+        this.reader.interrupt();
+        this.writer.interrupt();
+
+        Main.getActiveConnections().remove(this);
     }
 }

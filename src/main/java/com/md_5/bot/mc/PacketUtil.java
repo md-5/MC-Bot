@@ -17,4 +17,14 @@ public class PacketUtil {
     public static String readString(DataInputStream in, int maxLength) throws IOException {
         return Packet.a(in, maxLength);
     }
+
+    /**
+     * Gets the id of the specified packet.
+     *
+     * @param packet packet to id
+     * @return the packets id
+     */
+    public static int getId(Packet packet) {
+        return packet.b();
+    }
 }

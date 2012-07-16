@@ -4,6 +4,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.util.HashSet;
+import java.util.Set;
+import lombok.Getter;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ImporterTopLevel;
 import org.mozilla.javascript.Scriptable;
@@ -18,6 +21,8 @@ public class Main {
             : Main.class.getPackage().getImplementationVendor();
     private static final String version = (Main.class.getPackage().getImplementationVersion() == null) ? "Unknown"
             : Main.class.getPackage().getImplementationVersion();
+    @Getter
+    private static final Set<Connection> activeConnections = new HashSet<Connection>();
 
     /**
      * @param args the command line arguments
@@ -25,6 +30,9 @@ public class Main {
     public static void main(String[] args) throws Exception {
         args = new String[]{"test.js"};
         System.out.println(title + " version " + version + " by " + vendor);
+
+        Class.forName("net.minecraft.server.AchievementList");
+
         if (args.length != 1) {
             System.out.println("Incorrect arguments, usage is: java -jar " + title + ".jar <script.js>");
             return;
@@ -51,6 +59,8 @@ public class Main {
         ScriptableObject scriptable = new ImporterTopLevel(cx);
         Scriptable scope = cx.initStandardObjects(scriptable);
 
+        scope.put("out", scope, Context.javaToJS(System.out, scope));
+
         System.out.println("Executing script");
 
         Object result = cx.evaluateString(scope, script.toString(), scriptName, 1, null);
@@ -59,6 +69,11 @@ public class Main {
             System.out.println("Script returned: " + Context.toString(result));
         }
 
-        System.out.println("Execution finished");
+        System.out.println("Execution finished, cleaning up");
+        for (Connection con : Main.activeConnections) {
+            if (con.isConnected()) {
+                con.disconnect();
+            }
+        }
     }
 }
