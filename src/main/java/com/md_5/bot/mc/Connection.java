@@ -17,6 +17,7 @@ import net.minecraft.server.Packet;
 import net.minecraft.server.Packet1Login;
 import net.minecraft.server.Packet255KickDisconnect;
 import net.minecraft.server.Packet2Handshake;
+import net.minecraft.server.Packet3Chat;
 
 @Data
 public class Connection {
@@ -179,10 +180,6 @@ public class Connection {
      * @param packet the packet to be sent
      */
     public void sendPacket(Packet packet) {
-        if (!this.isConnected) {
-            throw new IllegalStateException("Not connected to a server.");
-        }
-
         queuedPackets.add(packet);
     }
 
@@ -213,15 +210,27 @@ public class Connection {
      * @param reason the reason for this early termination
      */
     public void shutdown(String reason) {
-        this.isConnected = false;
-        this.shutdownReason = reason;
-        try {
-            this.socket.close();
-        } catch (IOException ex) {
-        }
-        this.reader.interrupt();
-        this.writer.interrupt();
+        if (this.isConnected) {
+            System.out.println("Shutting down with reason: " + reason);
+            this.isConnected = false;
+            this.shutdownReason = reason;
+            try {
+                this.socket.close();
+            } catch (IOException ex) {
+            }
+            this.reader.interrupt();
+            this.writer.interrupt();
 
-        Main.getActiveConnections().remove(this);
+            Main.getActiveConnections().remove(this);
+        }
+    }
+
+    /**
+     * Sends the specified message into chat.
+     *
+     * @param message the message to send.
+     */
+    public void sendMessage(String message) {
+        this.queuedPackets.add(new Packet3Chat(message));
     }
 }

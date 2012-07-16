@@ -11,6 +11,7 @@ public class NetworkReader extends Thread {
 
     private final Connection con;
     private final DataInputStream in;
+    private int lastId = -1;
 
     public NetworkReader(Connection con, DataInputStream in) {
         super("NetworkReader - " + con.getHost() + " - " + con.getUsername());
@@ -31,7 +32,7 @@ public class NetworkReader extends Thread {
                 }
             }
         } catch (IOException ex) {
-            con.shutdown("Reader - " + ex.getMessage());
+            con.shutdown("Reader - " + ex.getMessage() + " - last id 0x" + Integer.toHexString(lastId));
         }
     }
 
@@ -39,6 +40,7 @@ public class NetworkReader extends Thread {
         Packet packet = null;
         try {
             int id = in.read();
+            this.lastId = id;
             if (id == -1) {
                 return null;
             }
