@@ -1,9 +1,25 @@
 importPackage(Packages.com.md_5.bot.mc);
+importPackage(Packages.java.lang);
+
 var connection = new Connection("127.0.0.1", 25565);
 connection.setUsername("md_5");
-connection.connect();
 
-while (connection.isConnected()){
-	var packet = connection.getPacket();
-	out.println("Js got packet: " + PacketUtil.getId(packet));
+if (connection.connect()){
+
+    // read thread
+    new Thread(function run(){
+        while (connection.isConnected()){
+            
+        }
+    }).start();
+
+    // write thread
+    new Thread(function run(){
+        while (connection.isConnected()){
+            
+        }
+    }).start();
+
+} else {
+    out.println("Failed to connect.");
 }

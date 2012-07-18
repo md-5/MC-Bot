@@ -4,8 +4,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collection;
 import lombok.Getter;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ImporterTopLevel;
@@ -22,7 +22,7 @@ public class Main {
     private static final String version = (Main.class.getPackage().getImplementationVersion() == null) ? "Unknown"
             : Main.class.getPackage().getImplementationVersion();
     @Getter
-    private static final Set<Connection> activeConnections = new HashSet<Connection>();
+    private static final Collection<Connection> activeConnections = new ArrayList<Connection>();
 
     /**
      * @param args the command line arguments
@@ -69,11 +69,10 @@ public class Main {
             System.out.println("Script returned: " + Context.toString(result));
         }
 
-        System.out.println("Execution finished, cleaning up");
-        for (Connection con : Main.activeConnections) {
-            if (con.isConnected()) {
-                con.disconnect();
-            }
+        System.out.println("Execution finished, waiting for all connections to terminate");
+        while (!Main.activeConnections.isEmpty()) {
+            Thread.sleep(1500);
         }
+        System.out.println("Execution finished");
     }
 }

@@ -3,7 +3,6 @@ package com.md_5.bot.mc.impl;
 import com.md_5.bot.mc.Connection;
 import com.md_5.bot.mc.PacketUtil;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import net.minecraft.server.Packet;
 
 public class NetworkWriter extends Thread {
@@ -28,7 +27,7 @@ public class NetworkWriter extends Thread {
                 } catch (InterruptedException ex) {
                 }
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             con.shutdown("Writer - " + ex.getMessage());
         }
     }

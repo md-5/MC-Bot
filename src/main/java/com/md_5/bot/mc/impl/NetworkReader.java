@@ -1,7 +1,6 @@
 package com.md_5.bot.mc.impl;
 
 import com.md_5.bot.mc.Connection;
-import com.md_5.bot.mc.PacketUtil;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -31,7 +30,7 @@ public class NetworkReader extends Thread {
                     con.getReceivedPackets().add(packet);
                 }
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             con.shutdown("Reader - " + ex.getMessage() + " - last id 0x" + Integer.toHexString(lastId));
         }
     }

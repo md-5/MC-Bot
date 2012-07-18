@@ -6,6 +6,7 @@ import com.md_5.bot.mc.impl.NetworkWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.URLEncoder;
 import java.util.concurrent.BlockingQueue;
@@ -39,6 +40,8 @@ public class Connection {
     private NetworkReader reader;
     private NetworkWriter writer;
     private NetHandler baseHandler = new BaseHandler(this);
+    //
+    private Location location = new Location();
 
     /**
      * Initialize a session for given server.
@@ -113,17 +116,23 @@ public class Connection {
      * without error, the socket object will no longer be null, and the login
      * sequence completed will have been completed.
      *
+     * @return whether the connection is successful
      * @throws IOException when the underlying socket throws an exception
      */
-    public void connect() throws IOException {
+    public boolean connect() throws IOException {
         if (this.isConnected) {
             throw new IllegalStateException("Already connected to a server");
         }
+        this.isConnected = true;
 
-        this.socket = new Socket(host, port);
+        try {
+            this.socket = new Socket(host, port);
+        } catch (ConnectException ex) {
+            this.shutdown("Connection refused.");
+            return false;
+        }
         this.socket.setSoTimeout(this.timeout);
         this.socket.setTrafficClass(24);
-        this.isConnected = true;
 
         DataInputStream in = new DataInputStream(this.socket.getInputStream());
         DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
@@ -144,6 +153,8 @@ public class Connection {
 
         sendPacket(new Packet1Login(this.username, 29, null, 0, 0, (byte) 0, (byte) 0, (byte) 0));
         checkResponse(reponse);
+
+        return true;
     }
 
     private void checkResponse(Packet reponse) throws RuntimeException {
@@ -214,13 +225,18 @@ public class Connection {
             System.out.println("Shutting down with reason: " + reason);
             this.isConnected = false;
             this.shutdownReason = reason;
-            try {
-                this.socket.close();
-            } catch (IOException ex) {
+            if (this.socket != null) {
+                try {
+                    this.socket.close();
+                } catch (IOException ex) {
+                }
             }
-            this.reader.interrupt();
-            this.writer.interrupt();
-
+            if (this.reader != null) {
+                this.reader.interrupt();
+            }
+            if (this.writer != null) {
+                this.writer.interrupt();
+            }
             Main.getActiveConnections().remove(this);
         }
     }
@@ -232,5 +248,19 @@ public class Connection {
      */
     public void sendMessage(String message) {
         this.queuedPackets.add(new Packet3Chat(message));
+    }
+
+    /**
+     * Moves the specified amount forwards in the current direction (calculated
+     * based on current yaw)
+     *
+     * @param amount how far to move
+     */
+    public void moveForward(double amount) {
+        final float pitch = getLocation().getPitch();
+        final float yaw = getLocation().getYaw();
+        final double xDiff = -Math.cos(pitch) * Math.sin(yaw);
+        final double yDiff = -Math.sin(pitch);
+        final double zDiff = Math.cos(pitch) * Math.cos(yaw);
     }
 }
