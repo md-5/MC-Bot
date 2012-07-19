@@ -24,6 +24,8 @@ public class NetworkWriter extends Thread {
                     Packet packet = con.getQueuedPackets().take();
                     out.write(PacketUtil.getId(packet));
                     packet.a(out);
+
+                    con.getSentPackets().add(packet);
                 } catch (InterruptedException ex) {
                 }
             }

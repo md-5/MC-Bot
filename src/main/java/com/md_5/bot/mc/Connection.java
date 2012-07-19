@@ -9,12 +9,17 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.security.auth.login.LoginException;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Setter;
 import net.minecraft.server.NetHandler;
 import net.minecraft.server.Packet;
+import net.minecraft.server.Packet13PlayerLookMove;
 import net.minecraft.server.Packet1Login;
 import net.minecraft.server.Packet255KickDisconnect;
 import net.minecraft.server.Packet2Handshake;
@@ -36,12 +41,14 @@ public class Connection {
     //
     private BlockingQueue<Packet> receivedPackets = new LinkedBlockingQueue<Packet>();
     private BlockingQueue<Packet> queuedPackets = new LinkedBlockingQueue<Packet>();
+    private List<Packet> sentPackets = new ArrayList<Packet>();
     //
     private NetworkReader reader;
     private NetworkWriter writer;
     private NetHandler baseHandler = new BaseHandler(this);
     //
-    private Location location = new Location();
+    @Setter(AccessLevel.NONE)
+    private Location location;
 
     /**
      * Initialize a session for given server.
@@ -251,16 +258,54 @@ public class Connection {
     }
 
     /**
-     * Moves the specified amount forwards in the current direction (calculated
-     * based on current yaw)
+     * Moves the specified amount forwards and left in the current direction
+     * (calculated based on current yaw)
      *
-     * @param amount how far to move
+     * @param forward, double sideways how far to move
+     * @param left how far to the left to move
      */
-    public void moveForward(double amount) {
-        final float pitch = getLocation().getPitch();
+    public void moveRelative(double forward, double left) {
+        double lastX = getLocation().getX();
+        double lastZ = getLocation().getZ();
+        //
         final float yaw = getLocation().getYaw();
-        final double xDiff = -Math.cos(pitch) * Math.sin(yaw);
-        final double yDiff = -Math.sin(pitch);
-        final double zDiff = Math.cos(pitch) * Math.cos(yaw);
+        final double xToMove = forward * Math.cos(yaw) - left * Math.sin(yaw);
+        final double zTomove = forward * Math.sin(yaw) + left * Math.cos(yaw);
+
+        getLocation().setX(getLocation().getX() + xToMove);
+        getLocation().setZ(getLocation().getZ() + zTomove);
+        //
+        float newYaw2 = (float) Math.atan(left / forward);
+        getLocation().setYaw(newYaw2);
+        System.out.println("Set: " + getLocation());
+        sendLocationUpdate();
+
+    }
+
+    public void setLocation(Location location) {
+        this.location = location;
+        sendLocationUpdate();
+    }
+
+    /**
+     * Internal method to send a location update packet pre populated with all
+     * the necessary data.
+     */
+    @Deprecated
+    private void sendLocationUpdate() {
+        Location loc = getLocation();
+        Packet13PlayerLookMove packet = new Packet13PlayerLookMove(loc.getX(), loc.getY(), loc.getStance(), loc.getZ(), loc.getYaw(), loc.getPitch(), loc.isOnGround());
+
+        sendPacket(packet);
+    }
+
+    /**
+     * Gets whether the packet has been sent to the server.
+     *
+     * @param packet the packet to check
+     * @return whether the packet has been written and sent
+     */
+    public boolean wasSent(Packet packet) {
+        return this.getSentPackets().contains(packet);
     }
 }

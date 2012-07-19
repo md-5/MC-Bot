@@ -32,17 +32,19 @@ public class BaseHandler extends NetHandler {
 
     @Override
     public void a(Packet10Flying pf) {
-        float yaw = con.getLocation().getYaw();
-        float pitch = con.getLocation().getPitch();
+        final Location base = (con.getLocation() != null) ? con.getLocation() : new Location();
+
+        float yaw = base.getYaw();
+        float pitch = base.getPitch();
         if (pf.hasLook) {
             yaw = pf.yaw;
             pitch = pf.pitch;
         }
 
-        double x = con.getLocation().getX();
-        double y = con.getLocation().getY();
-        double z = con.getLocation().getZ();
-        double stance = con.getLocation().getStance();
+        double x = base.getX();
+        double y = base.getY();
+        double z = base.getZ();
+        double stance = base.getStance();
         if (pf.hasPos) {
             x = pf.x;
             y = pf.y;
@@ -52,7 +54,7 @@ public class BaseHandler extends NetHandler {
         boolean onGround = pf.g;
 
         Location location = new Location(yaw, pitch, x, y, z, stance, onGround);
-
+        System.out.println(location);
         con.setLocation(location);
     }
 }
