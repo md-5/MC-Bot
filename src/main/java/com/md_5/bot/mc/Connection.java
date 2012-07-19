@@ -265,9 +265,6 @@ public class Connection {
      * @param left how far to the left to move
      */
     public void moveRelative(double forward, double left) {
-        double lastX = getLocation().getX();
-        double lastZ = getLocation().getZ();
-        //
         final float yaw = getLocation().getYaw();
         final double xToMove = forward * Math.cos(yaw) - left * Math.sin(yaw);
         final double zTomove = forward * Math.sin(yaw) + left * Math.cos(yaw);
@@ -275,11 +272,7 @@ public class Connection {
         getLocation().setX(getLocation().getX() + xToMove);
         getLocation().setZ(getLocation().getZ() + zTomove);
         //
-        float newYaw2 = (float) Math.atan(left / forward);
-        getLocation().setYaw(newYaw2);
-        System.out.println("Set: " + getLocation());
         sendLocationUpdate();
-
     }
 
     public void setLocation(Location location) {
