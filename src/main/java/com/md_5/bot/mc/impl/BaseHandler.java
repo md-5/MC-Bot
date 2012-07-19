@@ -54,7 +54,6 @@ public class BaseHandler extends NetHandler {
         boolean onGround = pf.g;
 
         Location location = new Location(yaw, pitch, x, y, z, stance, onGround);
-        System.out.println(location);
         con.setLocation(location);
     }
 }

@@ -266,12 +266,13 @@ public class Connection {
      */
     public void moveRelative(double forward, double left) {
         final float yaw = getLocation().getYaw();
-        final double xToMove = forward * Math.cos(yaw) - left * Math.sin(yaw);
-        final double zTomove = forward * Math.sin(yaw) + left * Math.cos(yaw);
+        final double xToMove = -forward * Math.sin(yaw) + left * Math.cos(yaw);
+        final double zToMove = forward * Math.cos(yaw) + left * Math.sin(yaw);
 
         getLocation().setX(getLocation().getX() + xToMove);
-        getLocation().setZ(getLocation().getZ() + zTomove);
-        //
+        getLocation().setZ(getLocation().getZ() + zToMove);
+        getLocation().setYaw((float) Math.atan2(-xToMove, zToMove));
+
         sendLocationUpdate();
     }
 
@@ -283,6 +284,8 @@ public class Connection {
     /**
      * Internal method to send a location update packet pre populated with all
      * the necessary data.
+     *
+     * @deprecated should not be used manually
      */
     @Deprecated
     private void sendLocationUpdate() {
