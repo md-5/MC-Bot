@@ -4,6 +4,8 @@ import com.md_5.bot.mc.Connection;
 import com.md_5.bot.mc.Location;
 import net.minecraft.server.NetHandler;
 import net.minecraft.server.Packet0KeepAlive;
+import net.minecraft.server.Packet103SetSlot;
+import net.minecraft.server.Packet104WindowItems;
 import net.minecraft.server.Packet10Flying;
 import net.minecraft.server.Packet255KickDisconnect;
 
@@ -55,5 +57,22 @@ public class BaseHandler extends NetHandler {
 
         Location location = new Location(yaw, pitch, x, y, z, stance, onGround);
         con.setLocation(location);
+    }
+
+    @Override
+    public void a(Packet103SetSlot pss) {
+        if (pss.a == 0) { // 0 = inventory
+            con.getInventory().setItem(pss.b, pss.c);
+        }
+    }
+
+    @Override
+    public void a(Packet104WindowItems pwi) {
+        if (pwi.a == 0) { // 0 = inventory
+            for (int i = 0; i < pwi.b.length; i++) {
+                con.getInventory().setItem(i, pwi.b[i]);
+            }
+        }
+        System.out.println(con.getInventory());
     }
 }

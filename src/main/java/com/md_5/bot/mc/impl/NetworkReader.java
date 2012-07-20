@@ -31,7 +31,8 @@ public class NetworkReader extends Thread {
                 }
             }
         } catch (Exception ex) {
-            con.shutdown("Reader - " + ex.getMessage() + " - last id 0x" + Integer.toHexString(lastId));
+            StackTraceElement el = ex.getStackTrace()[0];
+            con.shutdown("Reader - Error @ " + el.getClassName() + " line " + el.getLineNumber() + " " + ex.getClass().getName() + "[" + ex.getMessage() + "] - " + "last id 0x" + Integer.toHexString(lastId));
         }
     }
 

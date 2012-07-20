@@ -30,7 +30,8 @@ public class NetworkWriter extends Thread {
                 }
             }
         } catch (Exception ex) {
-            con.shutdown("Writer - " + ex.getMessage());
+            StackTraceElement el = ex.getStackTrace()[0];
+            con.shutdown("Writer - Error @ " + el.getClassName() + " line " + el.getLineNumber() + " " + ex.getClass().getName() + "[" + ex.getMessage() + "]");
         }
     }
 }

@@ -49,6 +49,7 @@ public class Connection {
     //
     @Setter(AccessLevel.NONE)
     private Location location;
+    private PlayerInventory inventory = new PlayerInventory();
 
     /**
      * Initialize a session for given server.
