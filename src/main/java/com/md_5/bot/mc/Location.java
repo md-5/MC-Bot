@@ -11,6 +11,7 @@ public class Location {
 
     @Setter(AccessLevel.NONE)
     private float yaw;
+    @Setter(AccessLevel.NONE)
     private float pitch;
     private double x;
     private double y;
@@ -44,6 +45,16 @@ public class Location {
     }
 
     /**
+     * Set the pitch. This helper method will convert it to degrees and cast to
+     * float.
+     *
+     * @param pitch the pitch to set, will be converted to degrees.
+     */
+    public void setPitch(float pitch) {
+        this.pitch = (float) Math.toDegrees(pitch);
+    }
+
+    /**
      * Adds the location by another.
      *
      * @param x X coordinate
@@ -72,7 +83,6 @@ public class Location {
      * function overflows, which will be caused if the length is too long. Not
      * world-aware and orientation independent.
      *
-     * @see Vector
      * @return the magnitude
      */
     public double length() {
@@ -83,7 +93,6 @@ public class Location {
      * Gets the magnitude of the location squared. Not world-aware and
      * orientation independent.
      *
-     * @see Vector
      * @return the magnitude
      */
     public double lengthSquared() {

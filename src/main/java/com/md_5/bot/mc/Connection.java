@@ -346,6 +346,7 @@ public class Connection {
         packet.target = entity.getId();
         packet.action = 1;
         //
+        look(entity.getLocation());
         swingArm();
         sendPacket(packet);
     }
@@ -408,5 +409,35 @@ public class Connection {
         if (this.health <= 0) {
             this.respawn();
         }
+    }
+
+    /**
+     * Make the bot look at the specified unit vector.
+     *
+     * @param x to look at
+     * @param y to look at
+     * @param z to look at
+     */
+    public void look(double x, double y, double z) {
+        double xDiff = x - getLocation().getX();
+        double yDiff = y - getLocation().getY();
+        double zDiff = z - getLocation().getZ();
+
+        double pitch = -Math.atan2(yDiff, Math.sqrt(Math.pow(xDiff, 2) + Math.pow(zDiff, 2)));
+        double yaw = Math.atan2(-xDiff, zDiff);
+
+        getLocation().setYaw((float) yaw);
+        getLocation().setPitch((float) pitch);
+        sendLocationUpdate();
+    }
+
+    /**
+     * Helper method for {@link #look} to automatically parse in a locations x,y
+     * and z coordinates.
+     *
+     * @param location location to look at
+     */
+    public void look(Location location) {
+        look(location.getX(), location.getY(), location.getZ());
     }
 }
