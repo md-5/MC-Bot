@@ -270,8 +270,7 @@ public class Connection {
         final double xToMove = -forward * Math.sin(yaw) + left * Math.cos(yaw);
         final double zToMove = forward * Math.cos(yaw) + left * Math.sin(yaw);
 
-        getLocation().setX(getLocation().getX() + xToMove);
-        getLocation().setZ(getLocation().getZ() + zToMove);
+        getLocation().add(xToMove, 0, zToMove);
         getLocation().setYaw((float) Math.atan2(-xToMove, zToMove));
 
         sendLocationUpdate();
