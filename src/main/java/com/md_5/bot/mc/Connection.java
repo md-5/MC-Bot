@@ -1,8 +1,11 @@
 package com.md_5.bot.mc;
 
+import com.md_5.bot.mc.entity.Entity;
 import com.md_5.bot.mc.impl.BaseHandler;
 import com.md_5.bot.mc.impl.NetworkReader;
 import com.md_5.bot.mc.impl.NetworkWriter;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -24,6 +27,7 @@ import net.minecraft.server.Packet1Login;
 import net.minecraft.server.Packet255KickDisconnect;
 import net.minecraft.server.Packet2Handshake;
 import net.minecraft.server.Packet3Chat;
+import net.minecraft.server.Packet7UseEntity;
 
 @Data
 public class Connection {
@@ -49,7 +53,9 @@ public class Connection {
     //
     @Setter(AccessLevel.NONE)
     private Location location;
-    private PlayerInventory inventory = new PlayerInventory();
+    private int entityId;
+    private final PlayerInventory inventory = new PlayerInventory();
+    private final TIntObjectMap<Entity> entities = new TIntObjectHashMap<Entity>();
 
     /**
      * Initialize a session for given server.
@@ -151,22 +157,26 @@ public class Connection {
 
 
         sendPacket(new Packet2Handshake(this.username + ";" + this.host + ";" + this.port));
-        Packet reponse = getPacket();
-        checkResponse(reponse);
+        Packet response = getPacket();
+        checkResponse(response);
 
-        Packet2Handshake handshake = (Packet2Handshake) reponse;
+        Packet2Handshake handshake = (Packet2Handshake) response;
         if (!handshake.a.equals("-")) {
             // TODO
         }
 
         sendPacket(new Packet1Login(this.username, 29, null, 0, 0, (byte) 0, (byte) 0, (byte) 0));
-        checkResponse(reponse);
+        response = getPacket();
+        checkResponse(response);
+        Packet1Login login = (Packet1Login) response;
+        this.entityId = login.a;
 
         return true;
     }
 
     private void checkResponse(Packet reponse) throws RuntimeException {
-        if (PacketUtil.getId(reponse) != 2) {
+        int id = PacketUtil.getId(reponse);
+        if (id != 1 && id != 2) {
             String message = "Disconnected by server: " + ((Packet255KickDisconnect) reponse).a;
             shutdown(message);
             throw new RuntimeException(message);
@@ -303,5 +313,28 @@ public class Connection {
      */
     public boolean wasSent(Packet packet) {
         return this.getSentPackets().contains(packet);
+    }
+
+    /**
+     * Hits (left clicks) the spcified entity.
+     *
+     * @param entity the entity to hit.
+     */
+    public void hit(Entity entity) {
+        Packet7UseEntity packet = new Packet7UseEntity();
+        packet.a = this.getEntityId();
+        packet.target = entity.getId();
+        packet.action = 1;
+        sendPacket(new Packet7UseEntity());
+    }
+
+    /**
+     * Get the entity of the given id.
+     *
+     * @param id of the entity
+     * @return the entity
+     */
+    public Entity getEntity(int id) {
+        return getEntities().get(id);
     }
 }

@@ -21,6 +21,18 @@ public class Location {
     public Location() {
     }
 
+    public Location(float yaw, float pitch, double x, double y, double z) {
+        this.yaw = yaw;
+        this.pitch = pitch;
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    public Location(double x, double y, double z) {
+        this(0, 0, x, y, z);
+    }
+
     /**
      * Set the yaw. This helper method will convert it to degrees and cast to
      * float.
@@ -32,36 +44,24 @@ public class Location {
     }
 
     /**
-     * Adds the location by another. Not world-aware.
+     * Adds the location by another.
      *
-     * @see Vector
      * @param x X coordinate
      * @param y Y coordinate
      * @param z Z coordinate
      * @return the same location
      */
-    public Location add(double x, double y, double z) {
+    public Location add(double x, double y, double z, float yaw, float pitch) {
         this.x += x;
         this.y += y;
         this.z += z;
+        this.yaw += yaw;
+        this.pitch += pitch;
         return this;
     }
 
-    /**
-     * Subtracts the location by another. Not world-aware and orientation
-     * independent.
-     *
-     * @see Vector
-     * @param x X coordinate
-     * @param y Y coordinate
-     * @param z Z coordinate
-     * @return the same location
-     */
-    public Location subtract(double x, double y, double z) {
-        this.x -= x;
-        this.y -= y;
-        this.z -= z;
-        return this;
+    public Location add(double x, double y, double z) {
+        return this.add(x, y, z, 0, 0);
     }
 
     /**

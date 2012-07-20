@@ -16,16 +16,7 @@ if (bot.connect()){
     // write thread
     new Thread(function run(){
         while (bot.isConnected()){
-            var first = true;
-            if (bot.getLocation() != null){
-                if (first){
-                    bot.getLocation().setYaw(0);
-                    first = false;
-                }
-                bot.moveRelative(0.20,0);
-                Thread.sleep(75);
-            // 2.5 blocks a second
-            }
+            
         }
     }).start();
 

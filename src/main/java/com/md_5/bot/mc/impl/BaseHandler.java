@@ -2,12 +2,17 @@ package com.md_5.bot.mc.impl;
 
 import com.md_5.bot.mc.Connection;
 import com.md_5.bot.mc.Location;
+import com.md_5.bot.mc.entity.Entity;
+import com.md_5.bot.mc.entity.OtherPlayer;
 import net.minecraft.server.NetHandler;
 import net.minecraft.server.Packet0KeepAlive;
 import net.minecraft.server.Packet103SetSlot;
 import net.minecraft.server.Packet104WindowItems;
 import net.minecraft.server.Packet10Flying;
+import net.minecraft.server.Packet20NamedEntitySpawn;
 import net.minecraft.server.Packet255KickDisconnect;
+import net.minecraft.server.Packet29DestroyEntity;
+import net.minecraft.server.Packet30Entity;
 
 public class BaseHandler extends NetHandler {
 
@@ -17,21 +22,33 @@ public class BaseHandler extends NetHandler {
         this.con = con;
     }
 
+    /**
+     * Is this a server handler?
+     */
     @Override
     public boolean c() {
         return false;
     }
 
+    /**
+     * Handle keepalives
+     */
     @Override
     public void a(Packet0KeepAlive pka) {
         con.sendPacket(new Packet0KeepAlive(pka.a));
     }
 
+    /**
+     * Shutdown on kicks
+     */
     @Override
     public void a(Packet255KickDisconnect pkd) {
         con.shutdown(pkd.a);
     }
 
+    /**
+     * Let the server tell us our position
+     */
     @Override
     public void a(Packet10Flying pf) {
         final Location base = (con.getLocation() != null) ? con.getLocation() : new Location();
@@ -59,6 +76,9 @@ public class BaseHandler extends NetHandler {
         con.setLocation(location);
     }
 
+    /**
+     * Setting of one slot
+     */
     @Override
     public void a(Packet103SetSlot pss) {
         if (pss.a == 0) { // 0 = inventory
@@ -66,6 +86,9 @@ public class BaseHandler extends NetHandler {
         }
     }
 
+    /**
+     * Setting of the entire inventory
+     */
     @Override
     public void a(Packet104WindowItems pwi) {
         if (pwi.a == 0) { // 0 = inventory
@@ -73,6 +96,66 @@ public class BaseHandler extends NetHandler {
                 con.getInventory().setItem(i, pwi.b[i]);
             }
         }
-        System.out.println(con.getInventory());
+    }
+
+    /**
+     * Fellow human beings spawning in on us.
+     */
+    @Override
+    public void a(Packet20NamedEntitySpawn pnes) {
+        int id = pnes.a;
+        String name = pnes.b;
+
+        float yaw = unwrap(pnes.f);
+        float pitch = unwrap(pnes.g);
+
+        Location loc = new Location(yaw, pitch, unwrap(pnes.c), unwrap(pnes.d), unwrap(pnes.e));
+        int currentItem = pnes.h;
+        OtherPlayer player = new OtherPlayer(id, name, loc, currentItem);
+
+        addEntity(player);
+    }
+
+    @Override
+    public void a(Packet30Entity pe) {
+        Entity entity = con.getEntity(pe.a);
+        entity.getLocation().add(unwrap((int) pe.b), unwrap((int) pe.c), unwrap((int) pe.d), (pe.g) ? unwrap(pe.e) : 0, (pe.g) ? unwrap(pe.f) : 0);
+    }
+
+    /**
+     * Something died
+     */
+    @Override
+    public void a(Packet29DestroyEntity pde) {
+        con.getEntities().remove(pde.a);
+    }
+
+    /**
+     * Helper method to add know entities.
+     *
+     * @param entity to add
+     */
+    private void addEntity(Entity entity) {
+        con.getEntities().put(entity.getId(), entity);
+    }
+
+    /**
+     * Helper method to unwrap the int entity location into a double one.
+     *
+     * @param wrapped the int wrapped location
+     * @return the unwrapped location
+     */
+    private double unwrap(int wrapped) {
+        return wrapped / 32D;
+    }
+
+    /**
+     * Helper method to unwrap the byte entity angle into a float one.
+     *
+     * @param wrapped the byte wrapped angle
+     * @return the unwrapped location
+     */
+    private float unwrap(byte wrapped) {
+        return (wrapped * 360) / 256F;
     }
 }
