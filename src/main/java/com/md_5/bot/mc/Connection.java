@@ -2,6 +2,7 @@ package com.md_5.bot.mc;
 
 import com.md_5.bot.mc.entity.Entity;
 import com.md_5.bot.mc.impl.BaseHandler;
+import com.md_5.bot.mc.impl.BaseThread;
 import com.md_5.bot.mc.impl.NetworkReader;
 import com.md_5.bot.mc.impl.NetworkWriter;
 import gnu.trove.map.TIntObjectMap;
@@ -23,11 +24,14 @@ import lombok.Setter;
 import net.minecraft.server.NetHandler;
 import net.minecraft.server.Packet;
 import net.minecraft.server.Packet13PlayerLookMove;
+import net.minecraft.server.Packet18ArmAnimation;
 import net.minecraft.server.Packet1Login;
 import net.minecraft.server.Packet255KickDisconnect;
 import net.minecraft.server.Packet2Handshake;
 import net.minecraft.server.Packet3Chat;
 import net.minecraft.server.Packet7UseEntity;
+import net.minecraft.server.Packet9Respawn;
+import net.minecraft.server.WorldType;
 
 @Data
 public class Connection {
@@ -46,14 +50,22 @@ public class Connection {
     private BlockingQueue<Packet> receivedPackets = new LinkedBlockingQueue<Packet>();
     private BlockingQueue<Packet> queuedPackets = new LinkedBlockingQueue<Packet>();
     private List<Packet> sentPackets = new ArrayList<Packet>();
+    // Login stuff
+    private int dimension;
+    private byte difficulty;
+    private byte gameMode;
+    private WorldType worldType;
     //
     private NetworkReader reader;
     private NetworkWriter writer;
+    private BaseThread mover;
     private NetHandler baseHandler = new BaseHandler(this);
     //
     @Setter(AccessLevel.NONE)
-    private Location location;
+    private volatile Location location;
     private int entityId;
+    @Setter(AccessLevel.NONE)
+    private int health = 20;
     private final PlayerInventory inventory = new PlayerInventory();
     private final TIntObjectMap<Entity> entities = new TIntObjectHashMap<Entity>();
 
@@ -171,6 +183,11 @@ public class Connection {
         Packet1Login login = (Packet1Login) response;
         this.entityId = login.a;
 
+        while (this.location == null) {
+            ;
+        }
+        this.mover = new BaseThread(this);
+        this.mover.start();
         return true;
     }
 
@@ -255,6 +272,9 @@ public class Connection {
             if (this.writer != null) {
                 this.writer.interrupt();
             }
+            if (this.mover != null) {
+                this.mover.interrupt();
+            }
             Main.getActiveConnections().remove(this);
         }
     }
@@ -298,7 +318,7 @@ public class Connection {
      * @deprecated should not be used manually
      */
     @Deprecated
-    private void sendLocationUpdate() {
+    public void sendLocationUpdate() {
         Location loc = getLocation();
         Packet13PlayerLookMove packet = new Packet13PlayerLookMove(loc.getX(), loc.getY(), loc.getStance(), loc.getZ(), loc.getYaw(), loc.getPitch(), loc.isOnGround());
 
@@ -325,7 +345,19 @@ public class Connection {
         packet.a = this.getEntityId();
         packet.target = entity.getId();
         packet.action = 1;
-        sendPacket(new Packet7UseEntity());
+        //
+        swingArm();
+        sendPacket(packet);
+    }
+
+    /**
+     * Swing the bots arm.
+     */
+    public void swingArm() {
+        Packet18ArmAnimation swing = new Packet18ArmAnimation();
+        swing.a = this.getEntityId();
+        swing.b = 1;
+        sendPacket(swing);
     }
 
     /**
@@ -336,5 +368,45 @@ public class Connection {
      */
     public Entity getEntity(int id) {
         return getEntities().get(id);
+    }
+
+    /**
+     * Get the entities surrounding the bot in any direction, bounded by the
+     * distance paramater.
+     *
+     * @param distance in any direction
+     * @return list of entities on no particular order
+     */
+    public List<Entity> getNearbyEntities(double distance) {
+        List<Entity> nearby = new ArrayList<Entity>();
+        for (Entity e : this.getEntities().valueCollection()) {
+            if (this.getLocation().distance(e.getLocation()) <= distance) {
+                nearby.add(e);
+            }
+        }
+        return nearby;
+    }
+
+    /**
+     * Send the respawn packet. Will only be sent if the bot is currently dead.
+     */
+    public void respawn() {
+        if (this.health <= 0) {
+            sendPacket(new Packet9Respawn(this.dimension, this.difficulty, WorldType.NORMAL, 0, gameMode));
+        }
+    }
+
+    /**
+     * Internal method to set the bots health and respawn if need be.
+     *
+     * @param health the new health level
+     * @deprecated should not be used manually
+     */
+    @Deprecated
+    public void setHealth(int health) {
+        this.health = health;
+        if (this.health <= 0) {
+            this.respawn();
+        }
     }
 }

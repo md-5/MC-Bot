@@ -9,10 +9,13 @@ import net.minecraft.server.Packet0KeepAlive;
 import net.minecraft.server.Packet103SetSlot;
 import net.minecraft.server.Packet104WindowItems;
 import net.minecraft.server.Packet10Flying;
+import net.minecraft.server.Packet1Login;
 import net.minecraft.server.Packet20NamedEntitySpawn;
 import net.minecraft.server.Packet255KickDisconnect;
 import net.minecraft.server.Packet29DestroyEntity;
 import net.minecraft.server.Packet30Entity;
+import net.minecraft.server.Packet8UpdateHealth;
+import net.minecraft.server.Packet9Respawn;
 
 public class BaseHandler extends NetHandler {
 
@@ -31,6 +34,28 @@ public class BaseHandler extends NetHandler {
     }
 
     /**
+     * Initial spawn
+     */
+    @Override
+    public void a(Packet1Login pl) {
+        con.setWorldType(pl.c);
+        con.setGameMode((byte) pl.d);
+        con.setDimension((byte) pl.e);
+        con.setDifficulty(pl.f);
+    }
+
+    /**
+     * respawn
+     */
+    @Override
+    public void a(Packet9Respawn pr) {
+        con.setWorldType(pr.e);
+        con.setGameMode((byte) pr.d);
+        con.setDimension(pr.a);
+        con.setDifficulty((byte) pr.b);
+    }
+
+    /**
      * Handle keepalives
      */
     @Override
@@ -44,6 +69,14 @@ public class BaseHandler extends NetHandler {
     @Override
     public void a(Packet255KickDisconnect pkd) {
         con.shutdown(pkd.a);
+    }
+
+    /**
+     * Health updates
+     */
+    @Override
+    public void a(Packet8UpdateHealth puh) {
+        con.setHealth(puh.a);
     }
 
     /**
@@ -119,7 +152,10 @@ public class BaseHandler extends NetHandler {
     @Override
     public void a(Packet30Entity pe) {
         Entity entity = con.getEntity(pe.a);
-        entity.getLocation().add(unwrap((int) pe.b), unwrap((int) pe.c), unwrap((int) pe.d), (pe.g) ? unwrap(pe.e) : 0, (pe.g) ? unwrap(pe.f) : 0);
+        if (entity != null) {
+            Location loc = entity.getLocation();
+            loc.add(unwrap((int) pe.b), unwrap((int) pe.c), unwrap((int) pe.d), (pe.g) ? unwrap(pe.e) : 0, (pe.g) ? unwrap(pe.f) : 0);
+        }
     }
 
     /**
