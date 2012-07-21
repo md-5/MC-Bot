@@ -14,6 +14,7 @@ import net.minecraft.server.Packet20NamedEntitySpawn;
 import net.minecraft.server.Packet255KickDisconnect;
 import net.minecraft.server.Packet29DestroyEntity;
 import net.minecraft.server.Packet30Entity;
+import net.minecraft.server.Packet34EntityTeleport;
 import net.minecraft.server.Packet8UpdateHealth;
 import net.minecraft.server.Packet9Respawn;
 
@@ -150,6 +151,9 @@ public class BaseHandler extends NetHandler {
         addEntity(player);
     }
 
+    /**
+     * Entity relative movement
+     */
     @Override
     public void a(Packet30Entity pe) {
         Entity entity = con.getEntity(pe.a);
@@ -160,20 +164,44 @@ public class BaseHandler extends NetHandler {
     }
 
     /**
+     * Big leaps
+     */
+    @Override
+    public void a(Packet34EntityTeleport pet) {
+        Entity entity = con.getEntity(pet.a);
+        if (entity != null) {
+            entity.setLocation(new Location(unwrap(pet.e), unwrap(pet.f), unwrap(pet.b), unwrap(pet.c), unwrap(pet.d)));
+        }
+    }
+
+    /**
      * Something died
      */
     @Override
     public void a(Packet29DestroyEntity pde) {
-        con.getEntities().remove(pde.a);
+        removeEntity(pde.a);
     }
 
     /**
-     * Helper method to add know entities.
+     * Helper method to add known entities.
      *
      * @param entity to add
      */
     private void addEntity(Entity entity) {
-        con.getEntities().put(entity.getId(), entity);
+        synchronized (con.getEntities()) {
+            con.getEntities().put(entity.getId(), entity);
+        }
+    }
+
+    /**
+     * Helper method to remove entities.
+     *
+     * @param id of the entity to remove.
+     */
+    private void removeEntity(int id) {
+        synchronized (con.getEntities()) {
+            con.getEntities().remove(id);
+        }
     }
 
     /**

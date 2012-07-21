@@ -358,9 +358,11 @@ public class Connection {
      */
     public TreeSet<Entity> getNearbyEntities(double distance) {
         TreeSet<Entity> nearby = new TreeSet<Entity>(new Util.DistanceComparator(this.location));
-        for (Entity e : this.getEntities().valueCollection()) {
-            if (this.getLocation().distance(e.getLocation()) <= distance) {
-                nearby.add(e);
+        synchronized (this.getEntities()) {
+            for (Entity e : this.getEntities().valueCollection()) {
+                if (this.getLocation().distance(e.getLocation()) <= distance) {
+                    nearby.add(e);
+                }
             }
         }
         return nearby;
