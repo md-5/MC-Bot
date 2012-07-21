@@ -96,17 +96,18 @@ public class BaseHandler extends NetHandler {
         double x = base.getX();
         double y = base.getY();
         double z = base.getZ();
-        double stance = base.getStance();
+        // double stanceModifier = base.getStance();
         if (pf.hasPos) {
             x = pf.x;
             y = pf.y;
             z = pf.z;
-            stance = pf.stance;
+            // stance = pf.stance;
         }
         boolean onGround = pf.g;
 
-        Location location = new Location(yaw, pitch, x, y, z, stance, onGround);
+        Location location = new Location(yaw, pitch, x, y, z);
         con.setLocation(location);
+        con.setOnGround(onGround);
     }
 
     /**

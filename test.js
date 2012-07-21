@@ -17,14 +17,41 @@ if (bot.connect()){
     // write thread
     new Thread(function run(){
         while (bot.isConnected()){
-            var nearby = bot.getNearbyEntities(4);
-            if (nearby.size() > 0){
-                bot.hit(nearby.get(0));
-            }
-            Thread.sleep(500);
+            moveCloser();
+            attackNearby(); 
         }
     }).start();
 
 } else {
     out.println("Failed to connect.");
+}
+/**
+ * Helper method to look and move to the closest entity within 16 blocks.
+ */
+function moveCloser(){
+    var nearby = bot.getNearbyEntities(16);
+    if (nearby.size() > 0){
+        bot.look(nearby.first());
+    }
+}
+/**
+ * Punch the closest entity at a vanilla compliant speed.
+ */
+var hits = 0;
+var lastAttack = 0;
+function attackNearby(){
+    var nearby = bot.getNearbyEntities(3.75);
+    if (nearby.size() > 0){
+        var currentTime = System.currentTimeMillis();
+        if (currentTime - lastAttack > 250){
+            bot.attack(nearby.first());
+            hits++;
+            
+            if (hits % 15 == 0){
+                lastAttack = currentTime + 1000;
+            } else {
+                lastAttack = currentTime;
+            }
+        }
+    }
 }

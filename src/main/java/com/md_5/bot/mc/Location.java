@@ -1,33 +1,19 @@
 package com.md_5.bot.mc;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Setter;
 
 @Data
 @AllArgsConstructor
 public class Location {
 
-    @Setter(AccessLevel.NONE)
     private float yaw;
-    @Setter(AccessLevel.NONE)
     private float pitch;
     private double x;
     private double y;
     private double z;
-    private double stance;
-    private boolean onGround;
 
     public Location() {
-    }
-
-    public Location(float yaw, float pitch, double x, double y, double z) {
-        this.yaw = yaw;
-        this.pitch = pitch;
-        this.x = x;
-        this.y = y;
-        this.z = z;
     }
 
     public Location(double x, double y, double z) {
@@ -40,7 +26,7 @@ public class Location {
      *
      * @param yaw the yaw to set, will be converted to degrees.
      */
-    public void setYaw(float yaw) {
+    public void setYawRadians(float yaw) {
         this.yaw = (float) Math.toDegrees(yaw);
     }
 
@@ -50,7 +36,7 @@ public class Location {
      *
      * @param pitch the pitch to set, will be converted to degrees.
      */
-    public void setPitch(float pitch) {
+    public void setPitchRadians(float pitch) {
         this.pitch = (float) Math.toDegrees(pitch);
     }
 

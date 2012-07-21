@@ -15,15 +15,13 @@ import java.net.Socket;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.security.auth.login.LoginException;
-import lombok.AccessLevel;
 import lombok.Data;
-import lombok.Setter;
 import net.minecraft.server.NetHandler;
 import net.minecraft.server.Packet;
-import net.minecraft.server.Packet13PlayerLookMove;
 import net.minecraft.server.Packet18ArmAnimation;
 import net.minecraft.server.Packet1Login;
 import net.minecraft.server.Packet255KickDisconnect;
@@ -36,6 +34,8 @@ import net.minecraft.server.WorldType;
 @Data
 public class Connection {
 
+    public static final double STANDING_HEIGHT = 1.62;
+    //
     private final String host;
     private final int port;
     //
@@ -61,11 +61,10 @@ public class Connection {
     private BaseThread mover;
     private NetHandler baseHandler = new BaseHandler(this);
     //
-    @Setter(AccessLevel.NONE)
     private volatile Location location;
     private int entityId;
-    @Setter(AccessLevel.NONE)
     private int health = 20;
+    private boolean onGround;
     private final PlayerInventory inventory = new PlayerInventory();
     private final TIntObjectMap<Entity> entities = new TIntObjectHashMap<Entity>();
 
@@ -301,28 +300,7 @@ public class Connection {
         final double zToMove = forward * Math.cos(yaw) + left * Math.sin(yaw);
 
         getLocation().add(xToMove, 0, zToMove);
-        getLocation().setYaw((float) Math.atan2(-xToMove, zToMove));
-
-        sendLocationUpdate();
-    }
-
-    public void setLocation(Location location) {
-        this.location = location;
-        sendLocationUpdate();
-    }
-
-    /**
-     * Internal method to send a location update packet pre populated with all
-     * the necessary data.
-     *
-     * @deprecated should not be used manually
-     */
-    @Deprecated
-    public void sendLocationUpdate() {
-        Location loc = getLocation();
-        Packet13PlayerLookMove packet = new Packet13PlayerLookMove(loc.getX(), loc.getY(), loc.getStance(), loc.getZ(), loc.getYaw(), loc.getPitch(), loc.isOnGround());
-
-        sendPacket(packet);
+        getLocation().setYawRadians((float) Math.atan2(-xToMove, zToMove));
     }
 
     /**
@@ -340,13 +318,13 @@ public class Connection {
      *
      * @param entity the entity to hit.
      */
-    public void hit(Entity entity) {
+    public void attack(Entity entity) {
         Packet7UseEntity packet = new Packet7UseEntity();
         packet.a = this.getEntityId();
         packet.target = entity.getId();
         packet.action = 1;
         //
-        look(entity.getLocation());
+        look(entity.getLocation().getX(), entity.getLocation().getY() + STANDING_HEIGHT, entity.getLocation().getZ());
         swingArm();
         sendPacket(packet);
     }
@@ -378,8 +356,8 @@ public class Connection {
      * @param distance in any direction
      * @return list of entities on no particular order
      */
-    public List<Entity> getNearbyEntities(double distance) {
-        List<Entity> nearby = new ArrayList<Entity>();
+    public TreeSet<Entity> getNearbyEntities(double distance) {
+        TreeSet<Entity> nearby = new TreeSet<Entity>(new Util.DistanceComparator(this.location));
         for (Entity e : this.getEntities().valueCollection()) {
             if (this.getLocation().distance(e.getLocation()) <= distance) {
                 nearby.add(e);
@@ -420,15 +398,14 @@ public class Connection {
      */
     public void look(double x, double y, double z) {
         double xDiff = x - getLocation().getX();
-        double yDiff = y - getLocation().getY();
+        double yDiff = y - getStance();
         double zDiff = z - getLocation().getZ();
 
         double pitch = -Math.atan2(yDiff, Math.sqrt(Math.pow(xDiff, 2) + Math.pow(zDiff, 2)));
         double yaw = Math.atan2(-xDiff, zDiff);
 
-        getLocation().setYaw((float) yaw);
-        getLocation().setPitch((float) pitch);
-        sendLocationUpdate();
+        getLocation().setYawRadians((float) yaw);
+        getLocation().setPitchRadians((float) pitch);
     }
 
     /**
@@ -439,5 +416,23 @@ public class Connection {
      */
     public void look(Location location) {
         look(location.getX(), location.getY(), location.getZ());
+    }
+
+    /**
+     * Helper method for {@link #look} to automatically add
+     * {@link #STANDING_HEIGHT} to the entities y, before looking at it.
+     *
+     * @param entity entity to look at
+     */
+    public void look(Entity entity) {
+        look(entity.getLocation().getX(), entity.getLocation().getY() + STANDING_HEIGHT, entity.getLocation().getZ());
+    }
+
+    public double getStance() {
+        return getLocation().getY() + STANDING_HEIGHT;
+    }
+
+    public boolean isOnGround() {
+        return this.onGround;
     }
 }

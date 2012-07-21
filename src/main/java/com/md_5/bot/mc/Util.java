@@ -1,5 +1,6 @@
 package com.md_5.bot.mc;
 
+import com.md_5.bot.mc.entity.Entity;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -9,7 +10,9 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
+import java.util.Comparator;
 import javax.net.ssl.HttpsURLConnection;
+import lombok.RequiredArgsConstructor;
 
 public class Util {
 
@@ -80,5 +83,18 @@ public class Util {
         }
 
         return new PingResponse(motd, online, max);
+    }
+
+    @RequiredArgsConstructor
+    public static class DistanceComparator implements Comparator<Entity> {
+
+        private final Location base;
+
+        @Override
+        public int compare(Entity o1, Entity o2) {
+            double l1 = o1.getLocation().distanceSquared(base);
+            double l2 = o2.getLocation().distanceSquared(base);
+            return (int) (l1 - l2);
+        }
     }
 }
