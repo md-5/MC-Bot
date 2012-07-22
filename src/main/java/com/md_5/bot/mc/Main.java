@@ -28,7 +28,6 @@ public class Main {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws Exception {
-        args = new String[]{"test.js"};
         System.out.println(title + " version " + version + " by " + vendor);
 
         Class.forName("net.minecraft.server.AchievementList");
