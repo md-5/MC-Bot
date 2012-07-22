@@ -173,7 +173,13 @@ public class Connection {
 
         Packet2Handshake handshake = (Packet2Handshake) response;
         if (!handshake.a.equals("-")) {
-            // TODO
+            if (this.sessionId == null) {
+                throw new InvalidLoginException("Not logged in.");
+            }
+            String user = URLEncoder.encode(this.username, "UTF-8");
+            String sessionId = URLEncoder.encode(this.sessionId, "UTF-8");
+            String serverId = URLEncoder.encode(handshake.a, "UTF-8");
+            Util.excutePost("http://session.minecraft.net/game/joinserver.jsp", "user=" + user + "&sessionId=" + sessionId + "&serverId=" + serverId);
         }
 
         sendPacket(new Packet1Login(this.username, 29, null, 0, 0, (byte) 0, (byte) 0, (byte) 0));

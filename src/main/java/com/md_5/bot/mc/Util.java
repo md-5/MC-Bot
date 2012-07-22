@@ -7,18 +7,18 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.util.Comparator;
-import javax.net.ssl.HttpsURLConnection;
 import lombok.RequiredArgsConstructor;
 
 public class Util {
 
     public static String excutePost(String targetURL, String urlParameters) throws IOException {
         URL url = new URL(targetURL);
-        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("POST");
         connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
