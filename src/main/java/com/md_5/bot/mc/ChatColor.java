@@ -1,9 +1,8 @@
 package com.md_5.bot.mc;
 
-import com.google.common.collect.Maps;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
-import org.apache.commons.lang.Validate;
 
 /**
  * All supported color values for chat
@@ -108,8 +107,8 @@ public enum ChatColor {
     private final char code;
     private final boolean isFormat;
     private final String toString;
-    private final static Map<Integer, ChatColor> BY_ID = Maps.newHashMap();
-    private final static Map<Character, ChatColor> BY_CHAR = Maps.newHashMap();
+    private final static Map<Integer, ChatColor> BY_ID = new HashMap<Integer, ChatColor>();
+    private final static Map<Character, ChatColor> BY_CHAR = new HashMap<Character, ChatColor>();
 
     private ChatColor(char code, int intCode) {
         this(code, intCode, false);
@@ -169,8 +168,12 @@ public enum ChatColor {
      * null if it doesn't exist
      */
     public static ChatColor getByChar(String code) {
-        Validate.notNull(code, "Code cannot be null");
-        Validate.isTrue(code.length() > 0, "Code must have at least one char");
+        if (code == null) {
+            throw new IllegalArgumentException("Code cannot be null");
+        }
+        if (code.length() < 0) {
+            throw new IllegalArgumentException("Code must have at least one char");
+        }
 
         return BY_CHAR.get(code.charAt(0));
     }
