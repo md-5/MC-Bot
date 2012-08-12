@@ -16,7 +16,9 @@ public class BaseThread extends Thread {
     @Override
     public void run() {
         while (con.isConnected()) {
-            sendLocationUpdate();
+            if (con.isAutoMoveUpdates()) {
+                sendLocationUpdate();
+            }
             try {
                 Thread.sleep(50);
             } catch (InterruptedException ex) {

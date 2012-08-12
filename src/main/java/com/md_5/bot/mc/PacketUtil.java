@@ -25,6 +25,6 @@ public class PacketUtil {
      * @return the packets id
      */
     public static int getId(Packet packet) {
-        return packet.b();
+        return packet.k();
     }
 }

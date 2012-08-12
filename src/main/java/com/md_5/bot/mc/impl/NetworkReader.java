@@ -4,12 +4,14 @@ import com.md_5.bot.mc.Connection;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import lombok.Setter;
 import net.minecraft.server.Packet;
 
 public class NetworkReader extends Thread {
 
     private final Connection con;
-    private final DataInputStream in;
+    @Setter
+    private DataInputStream in;
     private int lastId = -1;
 
     public NetworkReader(Connection con, DataInputStream in) {
@@ -36,7 +38,7 @@ public class NetworkReader extends Thread {
         }
     }
 
-    private Packet readPacket(DataInputStream in) throws IOException {
+    public Packet readPacket(DataInputStream in) throws IOException {
         Packet packet = null;
         try {
             int id = in.read();
@@ -45,7 +47,7 @@ public class NetworkReader extends Thread {
                 return null;
             }
 
-            packet = Packet.a(id);
+            packet = Packet.d(id);
             if (packet == null) {
                 throw new IOException("Bad packet id " + id);
             }

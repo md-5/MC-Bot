@@ -11,8 +11,13 @@ import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
+import java.security.SecureRandom;
 import java.util.Comparator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import lombok.RequiredArgsConstructor;
+import org.bouncycastle.crypto.CipherKeyGenerator;
+import org.bouncycastle.crypto.KeyGenerationParameters;
 
 public class Util {
 
@@ -83,6 +88,12 @@ public class Util {
         }
 
         return new PingResponse(motd, online, max);
+    }
+
+    public static SecretKey getSecretKey() {
+        CipherKeyGenerator gen = new CipherKeyGenerator();
+        gen.init(new KeyGenerationParameters(new SecureRandom(), 128));
+        return new SecretKeySpec(gen.generateKey(), "AES");
     }
 
     @RequiredArgsConstructor

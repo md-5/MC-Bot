@@ -30,7 +30,7 @@ public class BaseHandler extends NetHandler {
      * Is this a server handler?
      */
     @Override
-    public boolean c() {
+    public boolean a() {
         return false;
     }
 
@@ -39,8 +39,8 @@ public class BaseHandler extends NetHandler {
      */
     @Override
     public void a(Packet1Login pl) {
-        con.setWorldType(pl.c);
-        con.setGameMode((byte) pl.d);
+        con.setWorldType(pl.b);
+        con.setGameMode(pl.d);
         con.setDimension((byte) pl.e);
         con.setDifficulty(pl.f);
     }
@@ -51,7 +51,7 @@ public class BaseHandler extends NetHandler {
     @Override
     public void a(Packet9Respawn pr) {
         con.setWorldType(pr.e);
-        con.setGameMode((byte) pr.d);
+        con.setGameMode(pr.d);
         con.setDimension(pr.a);
         con.setDifficulty((byte) pr.b);
     }
@@ -179,7 +179,9 @@ public class BaseHandler extends NetHandler {
      */
     @Override
     public void a(Packet29DestroyEntity pde) {
-        removeEntity(pde.a);
+        for (int id : pde.a) {
+            removeEntity(id);
+        }
     }
 
     /**

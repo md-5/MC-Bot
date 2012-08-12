@@ -3,12 +3,15 @@ package com.md_5.bot.mc.impl;
 import com.md_5.bot.mc.Connection;
 import com.md_5.bot.mc.PacketUtil;
 import java.io.DataOutputStream;
+import java.io.IOException;
+import lombok.Setter;
 import net.minecraft.server.Packet;
 
 public class NetworkWriter extends Thread {
 
     private final Connection con;
-    private final DataOutputStream out;
+    @Setter
+    private DataOutputStream out;
 
     public NetworkWriter(Connection con, DataOutputStream out) {
         super("NetworkWriter - " + con.getHost() + " - " + con.getUsername());
@@ -22,10 +25,7 @@ public class NetworkWriter extends Thread {
             while (con.isConnected()) {
                 try {
                     Packet packet = con.getQueuedPackets().take();
-                    out.write(PacketUtil.getId(packet));
-                    packet.a(out);
-
-                    con.getSentPackets().add(packet);
+                    sendPacket(packet, out);
                 } catch (InterruptedException ex) {
                 }
             }
@@ -33,5 +33,12 @@ public class NetworkWriter extends Thread {
             StackTraceElement el = ex.getStackTrace()[0];
             con.shutdown("Writer - Error @ " + el.getClassName() + " line " + el.getLineNumber() + " " + ex.getClass().getName() + "[" + ex.getMessage() + "]");
         }
+    }
+
+    public void sendPacket(Packet packet, DataOutputStream out) throws IOException {
+        out.write(PacketUtil.getId(packet));
+        packet.a(out);
+
+        con.getSentPackets().add(packet);
     }
 }

@@ -10,20 +10,27 @@ import gnu.trove.map.hash.TIntObjectHashMap;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.URLEncoder;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import javax.security.auth.login.LoginException;
+import javax.crypto.SecretKey;
 import lombok.Data;
+import net.minecraft.server.EnumGamemode;
+import net.minecraft.server.MinecraftEncryption;
 import net.minecraft.server.NetHandler;
 import net.minecraft.server.Packet;
 import net.minecraft.server.Packet18ArmAnimation;
 import net.minecraft.server.Packet1Login;
+import net.minecraft.server.Packet205ClientCommand;
+import net.minecraft.server.Packet252KeyResponse;
+import net.minecraft.server.Packet253KeyRequest;
 import net.minecraft.server.Packet255KickDisconnect;
 import net.minecraft.server.Packet2Handshake;
 import net.minecraft.server.Packet3Chat;
@@ -36,14 +43,15 @@ public class Connection {
 
     public static final double STANDING_HEIGHT = 1.62;
     //
-    private final String host;
-    private final int port;
+    private String host;
+    private int port;
     //
     private String username;
     private String sessionId;
     private boolean isConnected;
     private String shutdownReason;
     //
+    private boolean autoMoveUpdates = true;
     private int timeout = 30000;
     private Socket socket;
     //
@@ -53,7 +61,7 @@ public class Connection {
     // Login stuff
     private int dimension;
     private byte difficulty;
-    private byte gameMode;
+    private EnumGamemode gameMode;
     private WorldType worldType;
     //
     private NetworkReader reader;
@@ -103,11 +111,11 @@ public class Connection {
             }
             if (!result.contains(":")) {
                 if (result.trim().equals("Bad login")) {
-                    throw new LoginException("Login failed");
+                    throw new InvalidLoginException("Login failed");
                 } else if (result.trim().equals("Old version")) {
-                    throw new LoginException("Outdated launcher");
+                    throw new InvalidLoginException("Outdated launcher");
                 } else {
-                    throw new LoginException(result);
+                    throw new InvalidLoginException(result);
                 }
             }
             String[] values = result.split(":");
@@ -162,27 +170,40 @@ public class Connection {
         DataInputStream in = new DataInputStream(this.socket.getInputStream());
         DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
         this.reader = new NetworkReader(this, in);
-        this.reader.start();
         this.writer = new NetworkWriter(this, out);
-        this.writer.start();
 
-
-        sendPacket(new Packet2Handshake(this.username + ";" + this.host + ";" + this.port));
-        Packet response = getPacket();
+        writer.sendPacket(new Packet2Handshake(39, this.username, this.host, this.port), out);
+        Packet response = reader.readPacket(in);
         checkResponse(response);
 
-        Packet2Handshake handshake = (Packet2Handshake) response;
-        if (!handshake.a.equals("-")) {
+        Packet253KeyRequest encryptRequest = (Packet253KeyRequest) response;
+        PublicKey serverKey = encryptRequest.getPublicKey();
+        SecretKey myKey = Util.getSecretKey();
+
+        if (!encryptRequest.getServerId().equals("-")) {
             if (this.sessionId == null) {
                 throw new InvalidLoginException("Not logged in.");
             }
             String user = URLEncoder.encode(this.username, "UTF-8");
             String sessionId = URLEncoder.encode(this.sessionId, "UTF-8");
-            String serverId = URLEncoder.encode(handshake.a, "UTF-8");
+            String serverId = new BigInteger(MinecraftEncryption.a(encryptRequest.getServerId(), serverKey, myKey)).toString(16);
+
             Util.excutePost("http://session.minecraft.net/game/joinserver.jsp", "user=" + user + "&sessionId=" + sessionId + "&serverId=" + serverId);
         }
 
-        sendPacket(new Packet1Login(this.username, 29, null, 0, 0, (byte) 0, (byte) 0, (byte) 0));
+        Packet252KeyResponse keyShare = new Packet252KeyResponse(myKey, serverKey, encryptRequest.getVerifyToken());
+        writer.sendPacket(keyShare, out);
+
+        response = reader.readPacket(in);
+        checkResponse(response);
+
+        this.reader.setIn(new DataInputStream(MinecraftEncryption.a(keyShare.d(), in)));
+        this.writer.setOut(new DataOutputStream(MinecraftEncryption.a(keyShare.d(), out)));
+        this.reader.start();
+        this.writer.start();
+
+        sendPacket(new Packet205ClientCommand());
+
         response = getPacket();
         checkResponse(response);
         Packet1Login login = (Packet1Login) response;
@@ -198,7 +219,7 @@ public class Connection {
 
     private void checkResponse(Packet reponse) throws RuntimeException {
         int id = PacketUtil.getId(reponse);
-        if (id != 1 && id != 2) {
+        if (id != 0x01 && id != 0xFC && id != 0xFD) {
             String message = "Disconnected by server: " + ((Packet255KickDisconnect) reponse).a;
             shutdown(message);
             throw new RuntimeException(message);
